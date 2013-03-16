@@ -117,6 +117,13 @@ long_and_loop_end:
     ret
 
 _main:
+    ; init
+    mov al, 1
+    mov [st16], al
+    mov al, 1
+    mov [ONE], al
+
+
     ; parse sign of arg2
     mov ebx, [esp + 8] ; ebx = argv
     mov eax, [ebx + 8] ; eax = argv[2]
@@ -172,16 +179,37 @@ move_digit_from_stack_to_hex_num_loop_end:
     ; number is really negative?
     mov eax, hex_num
     mov al, [eax + 3] ; TODO change to 31
-    call hex_char_to_byte
-    and al, 0x0A ; cmp al, 0b1000
+    ;call hex_char_to_byte
+    and al, 0x0A ; cmp al, 0b0010
     cmp al, 0x0A
     
     je if_negative_code
 if_positive_code:
     mov al, [is_negative]
-    
+    xor al, 0x00
     jmp end_if_negative_positive_code
 if_negative_code:
+    
+    ; invert bits and increment
+    
+    mov ecx, 0
+loop_invert:
+    cmp ecx, 4 ; TODO change to 31 ?
+    je loop_invert_end
+    
+    mov al, [hex_num + ecx]
+    xor al, 0x0F ; xor al, 0b0011
+    mov [hex_num + ecx], al
+    
+    inc ecx
+    jmp loop_invert
+loop_invert_end:
+
+    mov eax, hex_num
+    mov ebx, ONE
+    call long_add
+    
+    ; calc sign
     mov al, [is_negative]
     xor al, 0xFF
 end_if_negative_positive_code:    
@@ -208,6 +236,8 @@ end_if_negative_positive_code:
     mov eax, st16
     mov al, 1
     mov [st16], al
+    mov al, 1
+    mov [ONE], al
     
     ; call st16_next
     ; nop
@@ -224,14 +254,12 @@ end_if_negative_positive_code:
     
 section .data
 is_negative db 0 ; 0 - positive or zero, 0xFF - negative
-hex_num db 0,0,0,0 ; TODO change to 32
+hex_num db 0,0,0,0,0,0,0,0,0,0 ; TODO change to 32
 start_num_arg dd 0 
 
-st16 times 10 db 0 ; ; TODO change to ~50 (16^32)
+st16 times 10 db 0 ; TODO change to ~50 (16^32)
+ONE times 10 db 0 ; TODO change to ~50 (16^32)
 
-A db 0,0,0,0,0,0,0,0
-B db 2,0,0,0,0,0,0,0
- 
 section .rodata
 text db "Hello, world", 0
 
