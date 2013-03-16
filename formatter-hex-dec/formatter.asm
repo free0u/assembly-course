@@ -10,33 +10,57 @@ dump_dec_num:
     push eax
     push ecx
 
-    mov ecx, 0
+    mov ecx, 4 ; TODO change
 dump_dec_num_loop:
-    cmp ecx, 5 ; TODO change
-    je dump_dec_num_loop_end
+
+    mov al, [dec_num + ecx]
     
-    xor eax, eax
+    cmp al, 0
+    jne dump_dec_num_loop_end
+
+    cmp ecx, 0 
+    je dump_dec_num_loop_end
+    dec ecx
+    jmp dump_dec_num_loop
+dump_dec_num_loop_end:   
+
+
+    push ebx
+
+
+    mov ebx, 0
+dump_dec_num_loop2:
+    
     mov al, [dec_num + ecx]
     add al, 0x30
-    mov [buffer], al
+    inc ebx
+    mov [buffer + ebx], al
+    
+    cmp ecx, 0
+    je dump_dec_num_loop2_end
+    dec ecx
+    jmp dump_dec_num_loop2
+dump_dec_num_loop2_end:
+
     mov al, 0
-    mov [buffer + 1], al
-    
+    mov [buffer], bl
+    inc ebx
+    mov [buffer + ebx], al
+    pop ebx
+
+
+    mov ecx, buffer
+    inc ecx
     push ecx
-    
-    push buffer
     call _printf
     add esp, 4
     
-    pop ecx
-    
-    inc ecx
-    jmp dump_dec_num_loop
-dump_dec_num_loop_end:   
 
     pop ecx
     pop eax
     ret
+
+; ==================================================================
 
 
 erase_buffer:
@@ -179,6 +203,90 @@ _main:
     mov al, 1
     mov [ONE], al
 
+    ; parse format ================================================
+    ; '+' 0x2B
+    ; '-' 0x2D
+    ; ' ' 0x20 (space)
+    ; '0' 0x30
+    mov ebx, [esp + 8] ; ebx = argv
+    mov eax, [ebx + 4] ; eax = argv[1]
+    
+    mov ecx, 0
+parse_format_loop:
+    mov bl, [eax + ecx]
+    cmp bl, 0
+    je parse_format_loop_end
+
+    cmp bl, 0x2B ; plus
+    je if_plus
+    cmp bl, 0x2D ; minus
+    je if_minus
+    cmp bl, 0x20 ; space
+    je if_space
+    cmp bl, 0x30 ; zero
+    je if_zero
+
+    
+    ; any symbol
+parse_format_len_loop:   
+    mov bl, [eax + ecx]
+    cmp bl, 0
+    je parse_format_loop_end
+
+    sub bl, 0x30
+
+    push eax
+        
+        mov al, [len_format]
+        mov ah, 10
+        mul ah
+        
+        add al, bl
+        
+        mov [len_format], al
+
+    pop eax
+    
+    inc ecx
+    jmp parse_format_len_loop
+    
+    
+    
+if_space:
+    mov bl, 0xFF
+    mov [have_space], bl
+    jmp loop_if_end
+    
+if_plus:
+    mov bl, 0xFF
+    mov [have_plus], bl
+    jmp loop_if_end
+    
+if_minus:
+    mov bl, 0xFF
+    mov [have_minus], bl
+    jmp loop_if_end
+    
+if_zero:
+    mov bl, 0xFF
+    mov [have_zero], bl
+    jmp loop_if_end
+    
+    
+loop_if_end:    
+    
+    inc ecx
+    jmp parse_format_loop
+parse_format_loop_end:
+
+    
+    ; end parse format ============================================
+ 
+
+    push ecx
+    mov ecx, len_format
+    pop ecx
+ 
 
     ; parse sign of arg2
     mov ebx, [esp + 8] ; ebx = argv
@@ -340,7 +448,13 @@ start_num_arg dd 0
 
 st16 times 10 db 0 ; TODO change to ~50 (16^32)
 ONE times 10 db 0 ; TODO change to ~50 (16^32)
-buffer times 10 db 1
+buffer times 10 db 1 ; TODO change to ~50 (16^32)
+
+have_space db 0
+have_minus db 0
+have_plus db 0
+have_zero db 0
+len_format db 0
 
 section .rodata
 text db "Hello, world", 0
