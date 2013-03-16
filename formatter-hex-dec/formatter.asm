@@ -46,8 +46,8 @@ st16_next_loop:
     mov bh, 0
     add ax, bx
     
-    ; ah = ax / 10
-    ; al = ax % 10
+    ; ah = ax % 10
+    ; al = ax / 10
     mov bh, 10
     div bh
     
@@ -65,16 +65,56 @@ st16_next_loop_end:
 
 ; eax - char* first
 ; ebx - char* second    
+; first += second
 long_add:
+    push ecx
+    push edx
+
     mov ecx, 0
+    mov dh, 0 ; carry
     
 long_and_loop:
-    cmp ecx, 10 ; TODO change 10
+    cmp ecx, 5 ; TODO change 10
     je long_and_loop_end
 
+    ; dl = first[ecx]
+    mov dl, [eax + ecx]
+    
+    ; dl += dh(carry)
+    add dl, dh
+    
+    ; dh = second[ecx]
+    mov dh, [ebx + ecx]
+    
+    ; dl += dh
+    add dl, dh
+    
+    
+    push eax
+    
+    movzx ax, dl ; ax = dl
+    
+    ; ah = ax % 10
+    ; al = ax / 10
+    mov dh, 10 ; dh = 10
+    div dh
+    
+    mov dl, al
+    mov dh, ah
+    
+    pop eax
+    
+    xchg dh, dl
+    mov [eax + ecx], dl
+    
+    inc ecx
     jmp long_and_loop
 long_and_loop_end:
 
+    pop edx
+    pop ecx
+    
+    ret
 
 _main:
     ; parse sign of arg2
@@ -169,16 +209,16 @@ end_if_negative_positive_code:
     mov al, 1
     mov [st16], al
     
-    call st16_next
-    nop
-    call st16_next
-    nop
-    call st16_next
-    nop
-    call st16_next
-    nop
-    
-    
+    ; call st16_next
+    ; nop
+    ; call st16_next
+    ; nop
+    ; call st16_next
+    ; nop
+    ; call st16_next
+    ; nop
+ 
+
     ret
     
     
@@ -189,6 +229,8 @@ start_num_arg dd 0
 
 st16 times 10 db 0 ; ; TODO change to ~50 (16^32)
 
+A db 0,0,0,0,0,0,0,0
+B db 2,0,0,0,0,0,0,0
  
 section .rodata
 text db "Hello, world", 0
