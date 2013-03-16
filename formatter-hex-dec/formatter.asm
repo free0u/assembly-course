@@ -6,6 +6,60 @@ section .text
 global _main
 jmp _main
 
+dump_dec_num:
+    push eax
+    push ecx
+
+    mov ecx, 0
+dump_dec_num_loop:
+    cmp ecx, 5 ; TODO change
+    je dump_dec_num_loop_end
+    
+    xor eax, eax
+    mov al, [dec_num + ecx]
+    add al, 0x30
+    mov [buffer], al
+    mov al, 0
+    mov [buffer + 1], al
+    
+    push ecx
+    
+    push buffer
+    call _printf
+    add esp, 4
+    
+    pop ecx
+    
+    inc ecx
+    jmp dump_dec_num_loop
+dump_dec_num_loop_end:   
+
+    pop ecx
+    pop eax
+    ret
+
+
+erase_buffer:
+    push ecx
+    push eax
+    mov ecx, 0
+    mov al, 0
+    
+erase_buffer_loop:   
+    cmp ecx, 10 ; TODO change
+    je erase_buffer_loop_end
+    
+    mov [buffer + ecx], al
+    inc ecx
+
+    jmp erase_buffer_loop
+erase_buffer_loop_end:   
+    
+    pop eax
+    pop ecx
+
+    ret
+
 ; input al
 ; output al
 hex_char_to_byte:
@@ -23,7 +77,9 @@ if_is_digit:
     
     
 ; multiply num in st16 to 16
-st16_next:
+; dl - multiplier
+; esi - input/output adress
+mul_long_short:
     push eax
     push ebx
     push ecx
@@ -31,15 +87,15 @@ st16_next:
     mov bl, 0 ; carry
     
     mov ecx, 0
-st16_next_loop:
+mul_long_short_loop:
     cmp ecx, 10 ; TODO change 10
-    je st16_next_loop_end
+    je mul_long_short_loop_end
 
     xor ax, ax
-    mov al, [st16 + ecx]
+    mov al, [esi + ecx]
     
-    ; ax = al * 16
-    mov bh, 16
+    ; ax = al * multiplier
+    mov bh, dl
     mul bh
     
     ; ax = ax + bl(carry)
@@ -51,12 +107,12 @@ st16_next_loop:
     mov bh, 10
     div bh
     
-    mov [st16 + ecx], ah
+    mov [esi + ecx], ah
     mov bl, al
 
     inc ecx    
-    jmp st16_next_loop
-st16_next_loop_end:
+    jmp mul_long_short_loop
+mul_long_short_loop_end:
 
     pop ecx
     pop ebx
@@ -233,32 +289,58 @@ end_if_negative_positive_code:
     
     
     ; hex to dec
-    mov eax, st16
-    mov al, 1
-    mov [st16], al
-    mov al, 1
-    mov [ONE], al
+    mov ecx, dec_num
+    mov ecx, 0
     
-    ; call st16_next
-    ; nop
-    ; call st16_next
-    ; nop
-    ; call st16_next
-    ; nop
-    ; call st16_next
-    ; nop
- 
+convert_base_loop:
+    cmp ecx, 5
+    je convert_base_loop_end
 
+    
+    ; buffer = st16
+    call erase_buffer
+    mov eax, buffer
+    mov ebx, st16
+    call long_add
+    
+    push edx
+    push esi
+    
+    ; buffer *= hex_num[ecx]
+    mov dl, [hex_num + ecx]
+    mov esi, buffer
+    call mul_long_short
+    
+    ; st16 *= 16
+    mov dl, 16
+    mov esi, st16
+    call mul_long_short
+    
+    pop esi
+    pop edx
+    
+    mov eax, dec_num
+    mov ebx, buffer
+    call long_add
+    
+    inc ecx
+    jmp convert_base_loop
+convert_base_loop_end:
+   
+    call dump_dec_num
+   
     ret
     
     
 section .data
 is_negative db 0 ; 0 - positive or zero, 0xFF - negative
 hex_num db 0,0,0,0,0,0,0,0,0,0 ; TODO change to 32
+dec_num times 10 db 0
 start_num_arg dd 0 
 
 st16 times 10 db 0 ; TODO change to ~50 (16^32)
 ONE times 10 db 0 ; TODO change to ~50 (16^32)
+buffer times 10 db 1
 
 section .rodata
 text db "Hello, world", 0
