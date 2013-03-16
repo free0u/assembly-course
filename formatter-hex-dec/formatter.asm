@@ -10,7 +10,7 @@ dump_dec_num:
     push eax
     push ecx
 
-    mov ecx, 4 ; TODO change
+    mov ecx, 45
 dump_dec_num_loop:
 
     mov al, [dec_num + ecx]
@@ -111,7 +111,7 @@ calc_char_space:
     mov ah, 0xFF
     cmp al, ah
     jne calc_char_end
-    mov bh, 0x5F ; bh = '_' ; TODO change to space
+    mov bh, 0x20 ; bh = ' '
     
 calc_char_end:
    
@@ -197,7 +197,7 @@ print_spaces_loop:
     cmp cl, 0
     je print_spaces_loop_end
     
-    mov al, 0x5F ; al = '_' ; TODO change
+    mov al, 0x20 ; al = ' '
     mov [buffer_print], al
     mov al, 0
     mov [buffer_print + 1], al
@@ -224,7 +224,7 @@ print_spaces_loop2:
     cmp cl, 0
     je print_spaces_loop2_end
     
-    mov al, 0x5F ; al = '_' ; TODO change
+    mov al, 0x20 ; al = ' '
     mov [buffer_print], al
     mov al, 0
     mov [buffer_print + 1], al
@@ -276,7 +276,7 @@ erase_buffer:
     mov al, 0
     
 erase_buffer_loop:   
-    cmp ecx, 10 ; TODO change
+    cmp ecx, 50
     je erase_buffer_loop_end
     
     mov [buffer + ecx], al
@@ -318,7 +318,7 @@ mul_long_short:
     
     mov ecx, 0
 mul_long_short_loop:
-    cmp ecx, 10 ; TODO change 10
+    cmp ecx, 45
     je mul_long_short_loop_end
 
     xor ax, ax
@@ -360,7 +360,7 @@ long_add:
     mov dh, 0 ; carry
     
 long_and_loop:
-    cmp ecx, 5 ; TODO change 10
+    cmp ecx, 45
     je long_and_loop_end
 
     ; dl = first[ecx]
@@ -548,8 +548,7 @@ move_digit_from_stack_to_hex_num_loop_end:
     
     ; number is really negative?
     mov eax, hex_num
-    mov al, [eax + 3] ; TODO change to 31
-    ;call hex_char_to_byte
+    mov al, [eax + 31]
     and al, 0x08 ; cmp al, 0b00001000
     cmp al, 0x08
     
@@ -564,7 +563,7 @@ if_negative_code:
     
     mov ecx, 0
 loop_invert:
-    cmp ecx, 4 ; TODO change to 31 ?
+    cmp ecx, 32
     je loop_invert_end
     
     mov al, [hex_num + ecx]
@@ -648,14 +647,14 @@ convert_base_loop_end:
     
 section .data
 is_negative db 0 ; 0 - positive or zero, 0xFF - negative
-hex_num db 0,0,0,0,0,0,0,0,0,0 ; TODO change to 32
-dec_num times 10 db 0
+hex_num times 50 db 0
+dec_num times 50 db 0
 start_num_arg dd 0 
 
-st16 times 10 db 0 ; TODO change to ~50 (16^32)
-ONE times 10 db 0 ; TODO change to ~50 (16^32)
-buffer times 10 db 1 ; TODO change to ~50 (16^32)
-buffer_print times 10 db 1 ; TODO change to ~50 (16^32)
+st16 times 50 db 0
+ONE times 50 db 0
+buffer times 50 db 1
+buffer_print times 10 db 1
 
 have_space db 0
 have_minus db 0
