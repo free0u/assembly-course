@@ -44,12 +44,40 @@ _main:
     ; is't negative
 not_negative:
 
+    ; add zero to number and write in hex_num
+    mov ebx, [start_num_arg]
+add_zero_loop:
+    xor eax, eax
+    mov al, [ebx]
+    cmp al, 0
+    je add_zero_loop_end
+    call hex_char_to_byte
+    ; push in stack
+    push eax
+    inc ebx
 
+    jmp add_zero_loop
+add_zero_loop_end:
+    ; cnt in stack:
+    sub ebx, [start_num_arg]
+    mov ecx, ebx
 
+    mov ebx, hex_num
+move_digit_from_stack_to_hex_num_loop:
+    cmp ecx, 0
+    je move_digit_from_stack_to_hex_num_loop_end
+    pop eax
+    mov [ebx], al
+    inc ebx
+    dec ecx
+
+    jmp move_digit_from_stack_to_hex_num_loop
+move_digit_from_stack_to_hex_num_loop_end:
+    
     ; number is really negative?
     ; TODO think about length
-    mov eax, [start_num_arg]
-    mov al, [eax]
+    mov eax, hex_num
+    mov al, [eax + 3] ; TODO change to 31
     call hex_char_to_byte
     and al, 0x0A ; cmp al, 0b1000
     cmp al, 0x0A
@@ -87,7 +115,7 @@ print_negative:
     
 section .data
 is_negative db 0 ; 0 - positive or zero, 0xFF - negative
-
+hex_num db 0,0,0,0 ; TODO change to 32
 start_num_arg dd 0 
 
  
