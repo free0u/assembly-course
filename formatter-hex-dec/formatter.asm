@@ -414,6 +414,15 @@ _main:
     ; '-' 0x2D
     ; ' ' 0x20 (space)
     ; '0' 0x30
+    mov ebx, [esp + 4] ; cnt of arg
+    mov eax, 2
+    cmp eax, ebx
+    
+    mov ebx, [esp + 8] ; ebx = argv
+    mov eax, [ebx + 4] ; eax = argv[2]
+    je parse_number
+    
+    
     mov ebx, [esp + 8] ; ebx = argv
     mov eax, [ebx + 4] ; eax = argv[1]
     
@@ -497,6 +506,9 @@ parse_format_loop_end:
     ; parse sign of arg2
     mov ebx, [esp + 8] ; ebx = argv
     mov eax, [ebx + 8] ; eax = argv[2]
+    
+parse_number:
+    
     mov [start_num_arg], eax
     
     mov cl, [eax] ; cl = argv[2][0]
