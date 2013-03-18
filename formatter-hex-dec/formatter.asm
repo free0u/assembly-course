@@ -95,6 +95,33 @@ calc_char_minus:
     cmp al, ah
     jne calc_char_plus
 
+    
+; case minus zero
+    
+    
+    push edx
+    mov dl, 0
+    
+    mov ecx, 0
+is_zero_loop:
+    cmp ecx, 45
+    je is_zero_loop_end
+
+    mov al, [buffer + ecx + 1]
+    cmp al, 0
+    je is_zero_loop_end
+
+    sub al, '0'
+    or dl, al
+    
+    inc ecx
+    jmp is_zero_loop
+is_zero_loop_end:
+
+    cmp dl, 0
+    pop edx
+    
+    je calc_char_end    
     mov bh, 0x2D ; bh = '-'
     jmp calc_char_end
 
@@ -118,58 +145,11 @@ calc_char_end:
     ;bl - size of align
     ;bh - ascii code of sign or 0x00 if no sign
    
-   
-zero_indent:
-    mov al, [have_zero]
-    mov ah, 0xFF
-    cmp ah, al
-    jne minus_indent
-    
-    ; case zero
-    
-    ; print sign
-    mov [buffer_print], bh
-    mov bh, 0
-    mov [buffer_print + 1], bh
-    push buffer_print
-    call _printf
-    add esp, 4
-    
-    ; print zeroes
-    mov ecx, 0
-    mov cl, bl
-print_zero_loop:
-    cmp ecx, 0
-    je print_zero_loop_end
-    
-    mov al, 0x30 ; al = '0'
-    mov [buffer_print], al
-    mov al, 0
-    mov [buffer_print + 1], al
-    
-    push ecx
-    push buffer_print
-    call _printf
-    add esp, 4
-    pop ecx
-    
-    dec ecx
-    jmp print_zero_loop
-print_zero_loop_end:
-    
-    ; print number
-    mov ecx, buffer
-    inc ecx
-    push ecx
-    call _printf
-    add esp, 4
-    
-    jmp end_indent
 minus_indent:
     mov al, [have_minus]
     mov ah, 0xFF
     cmp al, ah
-    jne no_indent
+    jne zero_indent
     
     ; case minus
     
@@ -211,6 +191,52 @@ print_spaces_loop:
     dec ecx
     jmp print_spaces_loop
 print_spaces_loop_end:
+    
+    jmp end_indent  
+zero_indent:
+    mov al, [have_zero]
+    mov ah, 0xFF
+    cmp ah, al
+    jne no_indent
+    
+    ; case zero
+    
+    ; print sign
+    mov [buffer_print], bh
+    mov bh, 0
+    mov [buffer_print + 1], bh
+    push buffer_print
+    call _printf
+    add esp, 4
+    
+    ; print zeroes
+    mov ecx, 0
+    mov cl, bl
+print_zero_loop:
+    cmp ecx, 0
+    je print_zero_loop_end
+    
+    mov al, 0x30 ; al = '0'
+    mov [buffer_print], al
+    mov al, 0
+    mov [buffer_print + 1], al
+    
+    push ecx
+    push buffer_print
+    call _printf
+    add esp, 4
+    pop ecx
+    
+    dec ecx
+    jmp print_zero_loop
+print_zero_loop_end:
+    
+    ; print number
+    mov ecx, buffer
+    inc ecx
+    push ecx
+    call _printf
+    add esp, 4
     
     jmp end_indent
 no_indent:
@@ -382,7 +408,7 @@ long_and_loop:
     
     ; ah = ax % 10
     ; al = ax / 10
-    mov dh, 10 ; dh = 10
+    mov dh, [divider]
     div dh
     
     mov dl, al
@@ -586,8 +612,10 @@ loop_invert:
     jmp loop_invert
 loop_invert_end:
 
+    ; add 1 in binary (!)
     mov eax, hex_num
     mov ebx, ONE
+    mov [divider], byte 16
     call long_add
     
     ; calc sign
@@ -618,7 +646,7 @@ end_if_negative_positive_code:
     mov ecx, 0
     
 convert_base_loop:
-    cmp ecx, 5
+    cmp ecx, 45
     je convert_base_loop_end
 
     
@@ -626,6 +654,7 @@ convert_base_loop:
     call erase_buffer
     mov eax, buffer
     mov ebx, st16
+    mov [divider], byte 10
     call long_add
     
     push edx
@@ -646,6 +675,7 @@ convert_base_loop:
     
     mov eax, dec_num
     mov ebx, buffer
+    mov [divider], byte 10
     call long_add
     
     inc ecx
@@ -665,6 +695,7 @@ start_num_arg dd 0
 
 st16 times 50 db 0
 ONE times 50 db 0
+divider db 0
 buffer times 50 db 1
 buffer_print times 10 db 1
 
