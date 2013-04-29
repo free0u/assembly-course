@@ -11,10 +11,23 @@ extern "C" void foo(int x, int y);
 
 const float pi = 3.14159265359;
 
-float coef_f[8][8];
-float coef_i[8][8];
+float* coef_f;
+float* coef_i;
 
-void dump(float a[8][8])
+void dump(float * a)
+{
+    for (int i = 0; i < 8; ++i)
+    {
+        for (int j = 0; j < 8; ++j)
+        {
+            cout << a[i * 8 + j] << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+void dump2(float a[8][8])
 {
     for (int i = 0; i < 8; ++i)
     {
@@ -26,6 +39,8 @@ void dump(float a[8][8])
     }
     cout << endl;
 }
+
+
 
 float A_(int val)
 {
@@ -51,12 +66,15 @@ float get_coef_i(int i, int j)
 
 void init_coef()
 {
+    coef_f = (float*)malloc(64 * sizeof(float));
+    coef_i = (float*)malloc(64 * sizeof(float));
+
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
         {
-            coef_f[i][j] = get_coef_f(i, j);
-            coef_i[i][j] = get_coef_i(i, j);
+            coef_f[i * 8 + j] = get_coef_f(i, j);
+            coef_i[i * 8 + j] = get_coef_i(i, j);
         }
     }
 }
@@ -68,12 +86,12 @@ float __attribute__((aligned(16))) printBuf[4];
  
 // ======================================================================================================
 
-void transpose(float a[8][8])
-{
-    for (int i = 0; i < 8; ++i)
-        for (int j = 0; j < i; ++j)
-            swap(a[i][j], a[j][i]);
-}
+// void transpose(float a[8][8])
+// {
+    // for (int i = 0; i < 8; ++i)
+        // for (int j = 0; j < i; ++j)
+            // swap(a[i][j], a[j][i]);
+// }
 
 void print( __m128 a)
 {
@@ -109,11 +127,11 @@ float scal_slow(float * a, float * b)
 }
 
 
-void fdct_helper(float row[8], float coef[8][8])
+void fdct_helper(float * row, float * coef)
 {
     for (int i = 0; i < 8; ++i) 
     {
-        ans[i] = scal_slow(coef[i], row);
+        ans[i] = scal_slow(coef + i * 8, row);
         //calc_scal(coef[i], row, ans + i);
         //ans[i] = get_scal_res;
     }
@@ -121,20 +139,20 @@ void fdct_helper(float row[8], float coef[8][8])
     memmove(row, ans, 8 * sizeof(float));
 }
 
-void fdct(float a[8][8])
+void fdct(float * a)
 {
     for (int i = 0; i < 8; ++i)
-        fdct_helper(a[i], coef_f);
+        fdct_helper(a + i * 8, coef_f);
 
     for (int i = 0; i < 8; ++i)
     {
-        for (int j = 0; j < 8; ++j) row[j] = a[j][i];
+        for (int j = 0; j < 8; ++j) row[j] = a[j * 8 + i];
         fdct_helper(row, coef_f);
-        for (int j = 0; j < 8; ++j) a[j][i] = row[j];
+        for (int j = 0; j < 8; ++j) a[j * 8 + i] = row[j];
     }
 }
 
-void idct(float a[8][8])
+void idct(float * a)
 {
     fdct(a);
 }
@@ -174,7 +192,7 @@ int main()
     int CNT_TEST = 100;
     
     long long x_st, x_end, total = 0;
-    float data[8][8];
+    float * data = (float*)malloc(64 * sizeof(float));
     for (int test_i = 0; test_i < CNT_TEST; ++test_i)
     {
         memmove(data, data_source, 64 * sizeof(float));
@@ -190,24 +208,29 @@ int main()
             //dump(data);
         }
     }
+    //return 0;
     
-    dump(data);
-    dump(true_ans);
+    //dump(data);
+    //dump2(true_ans);
     
     bool correct = true;
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
         {
-            float d = fabs(data[i][j] - true_ans[i][j]);
+            float d = fabs(data[i * 8 + j] - true_ans[i][j]);
             if (d > 3)
             {
                 correct = false;
+                //printf("%f (%d, %d)\n", d, i, j);
             }
         }
     }
-
-    cout << (correct ? "ans correct" : "ans wrong") << endl;
+    free(data);
+    free(coef_f);
+    free(coef_i);
+    
+    cout << endl << (correct ? "ans correct" : "ans wrong") << endl;
     cout << endl << "time: " << total / CNT_TEST << endl;
     return 0;
 }
