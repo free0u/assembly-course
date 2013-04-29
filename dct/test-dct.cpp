@@ -122,70 +122,127 @@ float __attribute__((aligned(16))) printBuf[4];
 
 
 
-__m128 a0, a1;
+__m128 a0, a1, b0, b1;
 
-void calc_scal(float * b, float * to)
-{
-    __m128 b0 = _mm_loadu_ps(b);
-    __m128 b1 = _mm_loadu_ps(b + 4);
+// void calc_scal(float * b, float * to)
+// {
+    // b0 = _mm_loadu_ps(b);
+    // b1 = _mm_loadu_ps(b + 4);
     
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
+    // b0 = _mm_dp_ps(a0, b0, 0xff);
+    // b1 = _mm_dp_ps(a1, b1, 0xff);
+    // b0 = _mm_add_ss(b0, b1);
     
-    _mm_store_ss(to, b0);
-}
+    // _mm_store_ss(to, b0);
+// }
 
-void fdct_helper(float * row, int ind, float * buf_to, float * coef)
+void fdct_helper(float * row, float * buf_to, float * coef)
 {
     a0 = _mm_loadu_ps(row);
     a1 = _mm_loadu_ps(row + 4);
 
-    for (int i = 0; i < 8; ++i)
-        calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
+//    for (int i = 0; i < 8; ++i)
+//       calc_scal(coef + 8 * i, buf_to + i * 8);
         
-    // calc_scal(coef + 0, ans);
-    // calc_scal(coef + 8, ans + 1);
-    // calc_scal(coef + 16, ans + 2);
-    // calc_scal(coef + 24, ans + 3);
-    // calc_scal(coef + 32, ans + 4);
-    // calc_scal(coef + 40, ans + 5);
-    // calc_scal(coef + 48, ans + 6);
-    // calc_scal(coef + 56, ans + 7);
+    //calc_scal(coef + 0, buf_to);
+    b0 = _mm_loadu_ps(coef + 0);
+    b1 = _mm_loadu_ps(coef + 4);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to, b0);
+    
+    //calc_scal(coef + 8, buf_to + 8);
+    b0 = _mm_loadu_ps(coef + 8);
+    b1 = _mm_loadu_ps(coef + 12);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 8, b0);
+    
+    
+    //calc_scal(coef + 16, buf_to + 16);
+    b0 = _mm_loadu_ps(coef + 16);
+    b1 = _mm_loadu_ps(coef + 20);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 16, b0);
+    
+    //calc_scal(coef + 24, buf_to + 24);
+    b0 = _mm_loadu_ps(coef + 24);
+    b1 = _mm_loadu_ps(coef + 28);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 24, b0);
+    
+    //calc_scal(coef + 32, buf_to + 32);
+    b0 = _mm_loadu_ps(coef + 32);
+    b1 = _mm_loadu_ps(coef + 36);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 32, b0);
+    
+    
+    //calc_scal(coef + 40, buf_to + 40);
+    b0 = _mm_loadu_ps(coef + 40);
+    b1 = _mm_loadu_ps(coef + 44);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 40, b0);   
+    
+    
+    //calc_scal(coef + 48, buf_to + 48);
+    b0 = _mm_loadu_ps(coef + 48);
+    b1 = _mm_loadu_ps(coef + 52);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 48, b0);
+    
+    
+    //calc_scal(coef + 56, buf_to + 56);
+    b0 = _mm_loadu_ps(coef + 56);
+    b1 = _mm_loadu_ps(coef + 60);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
+    _mm_store_ss(buf_to + 56, b0);
+    
     
     //memmove(row, ans, 8 * sizeof(float));
 }
 
-void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
-{
-    // a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
-    // a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
-    a0 = _mm_loadu_ps(a + ind * 8);
-    a1 = _mm_loadu_ps(a + ind * 8 + 4);
+// void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
+// {
+//    a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
+//    a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
+    // a0 = _mm_loadu_ps(a + ind * 8);
+    // a1 = _mm_loadu_ps(a + ind * 8 + 4);
     
     
-    for (int i = 0; i < 8; ++i)
-    {
-        calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
-    }
+    // for (int i = 0; i < 8; ++i)
+    // {
+        // calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
+    // }
 
-    //for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
-}
+//    for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
+// }
 
 
 
 void fdct(float * source, float * dest)
 {
     for (int i = 0; i < 8; ++i)
-        fdct_helper(source + i * 8, i, buffer, coef_f);
+        fdct_helper(source + i * 8, buffer + i, coef_f);
 
-    //dump(buffer);
-    //exit(0);
-    
-    
+
     for (int i = 0; i < 8; ++i)
     {
-        fdct_helper_inv(buffer, i, dest, coef_f);
+        fdct_helper(buffer + i * 8, dest + i, coef_f);
     }
 }
 
@@ -240,10 +297,6 @@ int main()
         
         total += x_end - x_st;
         
-        if (test_i == 0)
-        {
-            //dump(matrix_ans);
-        }
     }
     //return 0;
     
