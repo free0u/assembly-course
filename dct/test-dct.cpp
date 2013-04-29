@@ -81,6 +81,7 @@ void init_coef()
 
 float ans[8];
 float row[8];
+float * buffer;
 
 float __attribute__((aligned(16))) printBuf[4];
  
@@ -93,73 +94,97 @@ float __attribute__((aligned(16))) printBuf[4];
             // swap(a[i][j], a[j][i]);
 // }
 
-void print( __m128 a)
+// float scal_slow(float * a, float * b)
+// {
+    // float res = 0;
+    // for (int i = 0; i < 8; ++i)
+        // res += a[i] * b[i];
+    // return res;
+// }
+
+
+// void calc_scal2(float * a, float * b, float * to)
+// {
+    // __m128 a0 = _mm_loadu_ps(a);
+    // __m128 a1 = _mm_loadu_ps(a + 4);
+    // __m128 b0 = _mm_loadu_ps(b);
+    // __m128 b1 = _mm_loadu_ps(b + 4);
+    
+    
+    
+    
+    // __m128 r0 = _mm_dp_ps(a0, b0, 0xff);
+    // __m128 r1 = _mm_dp_ps(a1, b1, 0xff);
+    // r0 = _mm_add_ss(r0, r1);
+    
+    // _mm_store_ss(to, r0);
+// }
+
+
+
+__m128 a0, a1;
+
+void calc_scal(float * b, float * to)
 {
-    _mm_store_ps(printBuf,a);
-    cout<<printBuf[0]<<' '<<
-    printBuf[1]<<' '<<
-    printBuf[2]<<' '<<
-    printBuf[3]<<endl;
-}
-
-
-
-void calc_scal(float a[8], float b[8], float * to)
-{
-    __m128 a0 = _mm_loadu_ps(a);
-    __m128 a1 = _mm_loadu_ps(a + 4);
     __m128 b0 = _mm_loadu_ps(b);
     __m128 b1 = _mm_loadu_ps(b + 4);
     
-    __m128 r0 = _mm_dp_ps(a0, b0, 0xff);
-    __m128 r1 = _mm_dp_ps(a1, b1, 0xff);
-    r0 = _mm_add_ss(r0, r1);
+    b0 = _mm_dp_ps(a0, b0, 0xff);
+    b1 = _mm_dp_ps(a1, b1, 0xff);
+    b0 = _mm_add_ss(b0, b1);
     
-    _mm_store_ss(to, r0);
+    _mm_store_ss(to, b0);
 }
 
-float scal_slow(float * a, float * b)
+void fdct_helper(float * row, float * buf_to, float * coef)
 {
-    float res = 0;
+    a0 = _mm_loadu_ps(row);
+    a1 = _mm_loadu_ps(row + 4);
+
     for (int i = 0; i < 8; ++i)
-        res += a[i] * b[i];
-    return res;
-}
-
-
-void fdct_helper(float * row, float * coef)
-{
-    for (int i = 0; i < 8; ++i) 
-    {
-        ans[i] = scal_slow(coef + i * 8, row);
-        //calc_scal(coef[i], row, ans + i);
-        //ans[i] = get_scal_res;
-    }
-            
+        calc_scal(coef + 8 * i, ans + i);
+        
+    // calc_scal(coef + 0, ans);
+    // calc_scal(coef + 8, ans + 1);
+    // calc_scal(coef + 16, ans + 2);
+    // calc_scal(coef + 24, ans + 3);
+    // calc_scal(coef + 32, ans + 4);
+    // calc_scal(coef + 40, ans + 5);
+    // calc_scal(coef + 48, ans + 6);
+    // calc_scal(coef + 56, ans + 7);
+    
     memmove(row, ans, 8 * sizeof(float));
 }
 
-void fdct(float * a)
+void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
+{
+    a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
+    a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
+    
+    for (int i = 0; i < 8; ++i)
+        calc_scal(coef + 8 * i, ans + i);
+
+    for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
+}
+
+
+
+void fdct(float * source, float * dest)
 {
     for (int i = 0; i < 8; ++i)
-        fdct_helper(a + i * 8, coef_f);
+        fdct_helper(source + i * 8, buffer, coef_f);
+
 
     for (int i = 0; i < 8; ++i)
     {
-        for (int j = 0; j < 8; ++j) row[j] = a[j * 8 + i];
-        fdct_helper(row, coef_f);
-        for (int j = 0; j < 8; ++j) a[j * 8 + i] = row[j];
+        fdct_helper_inv(source, i, buffer, coef_f);
     }
 }
 
-void idct(float * a)
-{
-    fdct(a);
-}
-
-
-
-
+// void idct(float * a)
+// {
+    // fdct(a);
+// }
 
 
 int main()
@@ -174,6 +199,7 @@ int main()
 
 
     init_coef();
+    buffer = (float*)malloc(64 * sizeof(float));
 
     float data_source[8][8], true_ans[8][8];
 
@@ -192,13 +218,16 @@ int main()
     int CNT_TEST = 100;
     
     long long x_st, x_end, total = 0;
+    
     float * data = (float*)malloc(64 * sizeof(float));
+    float * matrix_ans = (float*)malloc(64 * sizeof(float));
+    
     for (int test_i = 0; test_i < CNT_TEST; ++test_i)
     {
         memmove(data, data_source, 64 * sizeof(float));
         
         asm("rdtsc" : "=A"(x_st));
-        fdct(data);
+        fdct(data, matrix_ans);
         asm("rdtsc" : "=A"(x_end));
         
         total += x_end - x_st;
@@ -229,6 +258,8 @@ int main()
     free(data);
     free(coef_f);
     free(coef_i);
+    free(buffer);
+    free(matrix_ans);
     
     cout << endl << (correct ? "ans correct" : "ans wrong") << endl;
     cout << endl << "time: " << total / CNT_TEST << endl;
