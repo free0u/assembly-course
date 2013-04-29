@@ -136,13 +136,13 @@ void calc_scal(float * b, float * to)
     _mm_store_ss(to, b0);
 }
 
-void fdct_helper(float * row, float * buf_to, float * coef)
+void fdct_helper(float * row, int ind, float * buf_to, float * coef)
 {
     a0 = _mm_loadu_ps(row);
     a1 = _mm_loadu_ps(row + 4);
 
     for (int i = 0; i < 8; ++i)
-        calc_scal(coef + 8 * i, ans + i);
+        calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
         
     // calc_scal(coef + 0, ans);
     // calc_scal(coef + 8, ans + 1);
@@ -153,18 +153,23 @@ void fdct_helper(float * row, float * buf_to, float * coef)
     // calc_scal(coef + 48, ans + 6);
     // calc_scal(coef + 56, ans + 7);
     
-    memmove(row, ans, 8 * sizeof(float));
+    //memmove(row, ans, 8 * sizeof(float));
 }
 
 void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
 {
-    a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
-    a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
+    // a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
+    // a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
+    a0 = _mm_loadu_ps(a + ind * 8);
+    a1 = _mm_loadu_ps(a + ind * 8 + 4);
+    
     
     for (int i = 0; i < 8; ++i)
-        calc_scal(coef + 8 * i, ans + i);
+    {
+        calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
+    }
 
-    for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
+    //for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
 }
 
 
@@ -172,12 +177,15 @@ void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
 void fdct(float * source, float * dest)
 {
     for (int i = 0; i < 8; ++i)
-        fdct_helper(source + i * 8, buffer, coef_f);
+        fdct_helper(source + i * 8, i, buffer, coef_f);
 
-
+    //dump(buffer);
+    //exit(0);
+    
+    
     for (int i = 0; i < 8; ++i)
     {
-        fdct_helper_inv(source, i, buffer, coef_f);
+        fdct_helper_inv(buffer, i, dest, coef_f);
     }
 }
 
@@ -234,7 +242,7 @@ int main()
         
         if (test_i == 0)
         {
-            //dump(data);
+            //dump(matrix_ans);
         }
     }
     //return 0;
@@ -247,7 +255,7 @@ int main()
     {
         for (int j = 0; j < 8; ++j)
         {
-            float d = fabs(data[i * 8 + j] - true_ans[i][j]);
+            float d = fabs(matrix_ans[i * 8 + j] - true_ans[i][j]);
             if (d > 3)
             {
                 correct = false;
