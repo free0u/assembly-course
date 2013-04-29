@@ -9,6 +9,9 @@ using namespace std;
 
 extern "C" void foo(int x, int y);
 
+extern "C" void fdct(float * in, float * out, unsigned int count);
+extern "C" void idct(float * in, float * out, unsigned int count);
+
 const float pi = 3.14159265359;
 
 float* coef_f;
@@ -20,7 +23,7 @@ void dump(float * a)
     {
         for (int j = 0; j < 8; ++j)
         {
-            cout << a[i * 8 + j] << " ";
+            printf("%.3f ", a[i * 8 + j]);
         }
         cout << endl;
     }
@@ -79,190 +82,112 @@ void init_coef()
     }
 }
 
-float ans[8];
-float row[8];
 float * buffer;
 
-float __attribute__((aligned(16))) printBuf[4];
- 
-// ======================================================================================================
-
-// void transpose(float a[8][8])
-// {
-    // for (int i = 0; i < 8; ++i)
-        // for (int j = 0; j < i; ++j)
-            // swap(a[i][j], a[j][i]);
-// }
-
-// float scal_slow(float * a, float * b)
-// {
-    // float res = 0;
-    // for (int i = 0; i < 8; ++i)
-        // res += a[i] * b[i];
-    // return res;
-// }
-
-
-// void calc_scal2(float * a, float * b, float * to)
-// {
-    // __m128 a0 = _mm_loadu_ps(a);
-    // __m128 a1 = _mm_loadu_ps(a + 4);
-    // __m128 b0 = _mm_loadu_ps(b);
-    // __m128 b1 = _mm_loadu_ps(b + 4);
-    
-    
-    
-    
-    // __m128 r0 = _mm_dp_ps(a0, b0, 0xff);
-    // __m128 r1 = _mm_dp_ps(a1, b1, 0xff);
-    // r0 = _mm_add_ss(r0, r1);
-    
-    // _mm_store_ss(to, r0);
-// }
-
-
-
-__m128 a0, a1, b0, b1;
-
-// void calc_scal(float * b, float * to)
-// {
-    // b0 = _mm_loadu_ps(b);
-    // b1 = _mm_loadu_ps(b + 4);
-    
-    // b0 = _mm_dp_ps(a0, b0, 0xff);
-    // b1 = _mm_dp_ps(a1, b1, 0xff);
-    // b0 = _mm_add_ss(b0, b1);
-    
-    // _mm_store_ss(to, b0);
-// }
+__m128 xxm0, xxm1, xxm2, xxm3;
 
 void fdct_helper(float * row, float * buf_to, float * coef)
 {
-    a0 = _mm_loadu_ps(row);
-    a1 = _mm_loadu_ps(row + 4);
+    xxm0 = _mm_loadu_ps(row);
+    xxm1 = _mm_loadu_ps(row + 4);
 
-//    for (int i = 0; i < 8; ++i)
-//       calc_scal(coef + 8 * i, buf_to + i * 8);
-        
     //calc_scal(coef + 0, buf_to);
-    b0 = _mm_loadu_ps(coef + 0);
-    b1 = _mm_loadu_ps(coef + 4);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to, b0);
+    xxm2 = _mm_loadu_ps(coef + 0);
+    xxm3 = _mm_loadu_ps(coef + 4);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to, xxm2);
     
     //calc_scal(coef + 8, buf_to + 8);
-    b0 = _mm_loadu_ps(coef + 8);
-    b1 = _mm_loadu_ps(coef + 12);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 8, b0);
+    xxm2 = _mm_loadu_ps(coef + 8);
+    xxm3 = _mm_loadu_ps(coef + 12);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 8, xxm2);
     
     
     //calc_scal(coef + 16, buf_to + 16);
-    b0 = _mm_loadu_ps(coef + 16);
-    b1 = _mm_loadu_ps(coef + 20);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 16, b0);
+    xxm2 = _mm_loadu_ps(coef + 16);
+    xxm3 = _mm_loadu_ps(coef + 20);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 16, xxm2);
     
     //calc_scal(coef + 24, buf_to + 24);
-    b0 = _mm_loadu_ps(coef + 24);
-    b1 = _mm_loadu_ps(coef + 28);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 24, b0);
+    xxm2 = _mm_loadu_ps(coef + 24);
+    xxm3 = _mm_loadu_ps(coef + 28);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 24, xxm2);
     
     //calc_scal(coef + 32, buf_to + 32);
-    b0 = _mm_loadu_ps(coef + 32);
-    b1 = _mm_loadu_ps(coef + 36);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 32, b0);
+    xxm2 = _mm_loadu_ps(coef + 32);
+    xxm3 = _mm_loadu_ps(coef + 36);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 32, xxm2);
     
     
     //calc_scal(coef + 40, buf_to + 40);
-    b0 = _mm_loadu_ps(coef + 40);
-    b1 = _mm_loadu_ps(coef + 44);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 40, b0);   
+    xxm2 = _mm_loadu_ps(coef + 40);
+    xxm3 = _mm_loadu_ps(coef + 44);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 40, xxm2);   
     
     
     //calc_scal(coef + 48, buf_to + 48);
-    b0 = _mm_loadu_ps(coef + 48);
-    b1 = _mm_loadu_ps(coef + 52);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 48, b0);
+    xxm2 = _mm_loadu_ps(coef + 48);
+    xxm3 = _mm_loadu_ps(coef + 52);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 48, xxm2);
     
     
     //calc_scal(coef + 56, buf_to + 56);
-    b0 = _mm_loadu_ps(coef + 56);
-    b1 = _mm_loadu_ps(coef + 60);
-    b0 = _mm_dp_ps(a0, b0, 0xff);
-    b1 = _mm_dp_ps(a1, b1, 0xff);
-    b0 = _mm_add_ss(b0, b1);
-    _mm_store_ss(buf_to + 56, b0);
+    xxm2 = _mm_loadu_ps(coef + 56);
+    xxm3 = _mm_loadu_ps(coef + 60);
+    xxm2 = _mm_dp_ps(xxm0, xxm2, 0xff);
+    xxm3 = _mm_dp_ps(xxm1, xxm3, 0xff);
+    xxm2 = _mm_add_ss(xxm2, xxm3);
+    _mm_store_ss(buf_to + 56, xxm2);
     
-    
-    //memmove(row, ans, 8 * sizeof(float));
 }
 
-// void fdct_helper_inv(float * a, int ind, float * buf_to, float * coef)
-// {
-//    a0 = _mm_set_ps(a[24 + ind], a[16 + ind], a[8 + ind], a[0 + ind]);
-//    a1 = _mm_set_ps(a[56 + ind], a[48 + ind], a[40 + ind], a[32 + ind]);
-    // a0 = _mm_loadu_ps(a + ind * 8);
-    // a1 = _mm_loadu_ps(a + ind * 8 + 4);
-    
-    
-    // for (int i = 0; i < 8; ++i)
-    // {
-        // calc_scal(coef + 8 * i, buf_to + i * 8 + ind);
-    // }
-
-//    for (int j = 0; j < 8; ++j) a[j * 8 + ind] = ans[j];        
-// }
 
 
 
-void fdct(float * source, float * dest)
+void c_fdct(float * source, float * dest, unsigned int count)
 {
     for (int i = 0; i < 8; ++i)
         fdct_helper(source + i * 8, buffer + i, coef_f);
-
-
+    
     for (int i = 0; i < 8; ++i)
-    {
         fdct_helper(buffer + i * 8, dest + i, coef_f);
-    }
 }
 
-// void idct(float * a)
-// {
-    // fdct(a);
-// }
+void c_idct(float * source, float * dest, unsigned int count)
+{
+    for (int i = 0; i < 8; ++i)
+        fdct_helper(source + i * 8, buffer + i, coef_i);
+    
+    for (int i = 0; i < 8; ++i)
+        fdct_helper(buffer + i * 8, dest + i, coef_i);
+}
+
+
+long long x_st, x_end, total;
 
 
 int main()
 {
-/*     __m128 vek = _mm_set_ps(4.0, 3.0, 2.0, 1.0);
-    __m128 vec = _mm_set_ps(1.0, 2.0, 3.0, 4.0);
-
-    cout << get_scal_fast(vek, vek, vec, vec);
-
-    return 0; */
-
-
-
     init_coef();
     buffer = (float*)malloc(64 * sizeof(float));
 
@@ -280,19 +205,28 @@ int main()
         }
     }
     
-    int CNT_TEST = 100;
+    int CNT_TEST = 100000;
+    int CNT_MATRIX = 100;
     
-    long long x_st, x_end, total = 0;
+    //float * data = (float*)malloc(CNT_MATRIX * 64 * sizeof(float));
+    //float * matrix_ans = (float*)malloc(CNT_MATRIX * 64 * sizeof(float));
     
-    float * data = (float*)malloc(64 * sizeof(float));
-    float * matrix_ans = (float*)malloc(64 * sizeof(float));
+    float data[64 * CNT_MATRIX] __attribute__((aligned(16)));
+    float matrix_ans[64 * CNT_MATRIX] __attribute__((aligned(16)));
     
+    total = 0;
     for (int test_i = 0; test_i < CNT_TEST; ++test_i)
     {
-        memmove(data, data_source, 64 * sizeof(float));
+        for (int i = 0; i < CNT_MATRIX; ++i)
+        {
+            memmove(data + i * 64, data_source, 64 * sizeof(float));
+        }
+        
         
         asm("rdtsc" : "=A"(x_st));
-        fdct(data, matrix_ans);
+        fdct(data, matrix_ans, CNT_MATRIX);
+        idct(matrix_ans, data, CNT_MATRIX);
+        fdct(data, matrix_ans, CNT_MATRIX);
         asm("rdtsc" : "=A"(x_end));
         
         total += x_end - x_st;
@@ -300,30 +234,34 @@ int main()
     }
     //return 0;
     
-    //dump(data);
+    //dump(matrix_ans);
     //dump2(true_ans);
     
     bool correct = true;
-    for (int i = 0; i < 8; ++i)
+    for (int testn = 0; testn < CNT_MATRIX; ++testn)
     {
-        for (int j = 0; j < 8; ++j)
+        for (int i = 0; i < 8; ++i)
         {
-            float d = fabs(matrix_ans[i * 8 + j] - true_ans[i][j]);
-            if (d > 3)
+            for (int j = 0; j < 8; ++j)
             {
-                correct = false;
-                //printf("%f (%d, %d)\n", d, i, j);
+                float d = fabs(matrix_ans[testn * 64 + i * 8 + j] - true_ans[i][j]);
+                if (d > 3)
+                {
+                    correct = false;
+                    //printf("%f (%d, %d)\n", d, i, j);
+                }
             }
         }
     }
-    free(data);
+    
+    //free(data);
     free(coef_f);
     free(coef_i);
     free(buffer);
-    free(matrix_ans);
+    //free(matrix_ans);
     
     cout << endl << (correct ? "ans correct" : "ans wrong") << endl;
-    cout << endl << "time: " << total / CNT_TEST << endl;
+    cout << endl << "time: " << total / CNT_TEST / CNT_MATRIX / 3 << endl;
     return 0;
 }
 
