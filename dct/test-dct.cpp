@@ -157,23 +157,26 @@ int main()
 
     init_coef();
 
-    float data_source[8][8];
+    float data_source[8][8], true_ans[8][8];
 
     ifstream in("input.txt");
+    ifstream in2("output_true.txt");
+    
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
         {
             in >> data_source[i][j];
+            in2 >> true_ans[i][j];
         }
     }
     
     int CNT_TEST = 100;
     
     long long x_st, x_end, total = 0;
+    float data[8][8];
     for (int test_i = 0; test_i < CNT_TEST; ++test_i)
     {
-        float data[8][8];
         memmove(data, data_source, 64 * sizeof(float));
         
         asm("rdtsc" : "=A"(x_st));
@@ -184,10 +187,27 @@ int main()
         
         if (test_i == 0)
         {
-            dump(data);
+            //dump(data);
         }
     }
     
+    dump(data);
+    dump(true_ans);
+    
+    bool correct = true;
+    for (int i = 0; i < 8; ++i)
+    {
+        for (int j = 0; j < 8; ++j)
+        {
+            float d = fabs(data[i][j] - true_ans[i][j]);
+            if (d > 3)
+            {
+                correct = false;
+            }
+        }
+    }
+
+    cout << (correct ? "ans correct" : "ans wrong") << endl;
     cout << endl << "time: " << total / CNT_TEST << endl;
     return 0;
 }
